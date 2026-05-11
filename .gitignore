@@ -1,0 +1,25 @@
+# Secrets — never commit
+.env
+*.env.local
+
+# Local router captures (contain ISP customer ID, MAC addresses, etc.)
+XX230v.html
+XX230v_files/
+*.har
+
+# Build artifacts
+/wan
+/wan-*
+/dist/
+
+# Python venv from the legacy bash/python prototype
+.venv/
+
+# OS / editor
+.DS_Store
+*.swp
+.idea/
+.vscode/
+
+# Old prototype
+wan.sh
