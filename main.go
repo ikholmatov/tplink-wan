@@ -325,7 +325,7 @@ func loadEnv(path string) {
 	}
 }
 
-const usage = `Usage: wan <command> [arg]
+const usageTmpl = `Usage: %s <command> [arg]
 
 Commands:
   status                    summary + WAN list
@@ -341,6 +341,10 @@ Env (or .env beside the binary):
   TPLINK_PASSWORD   required
 `
 
+func usage() string {
+	return fmt.Sprintf(usageTmpl, filepath.Base(os.Args[0]))
+}
+
 func main() {
 	exe, _ := os.Executable()
 	loadEnv(filepath.Join(filepath.Dir(exe), ".env"))
@@ -348,7 +352,7 @@ func main() {
 	loadEnv(".env")
 
 	if len(os.Args) < 2 {
-		fmt.Fprint(os.Stderr, usage)
+		fmt.Fprint(os.Stderr, usage())
 		os.Exit(1)
 	}
 	cmd := os.Args[1]
@@ -390,7 +394,7 @@ func main() {
 	case "reboot":
 		reboot(c)
 	default:
-		fmt.Fprint(os.Stderr, usage)
+		fmt.Fprint(os.Stderr, usage())
 		os.Exit(1)
 	}
 }

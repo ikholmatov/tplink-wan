@@ -18,10 +18,26 @@ your IP and you want a quick refresh without dropping IPTV or VoIP.
 
 ## Install
 
-### Download a binary
+### With `go install`
+
+If you have Go 1.21+ installed:
+
+```sh
+go install github.com/ikholmatov/tplink-wan@latest
+```
+
+This drops a `tplink-wan` binary into `$(go env GOBIN)` (or `$(go env GOPATH)/bin`
+if `GOBIN` is unset). Make sure that directory is on your `PATH`. To get the
+shorter `wan` name from the examples below, symlink it:
+
+```sh
+ln -s "$(go env GOPATH)/bin/tplink-wan" "$(go env GOPATH)/bin/wan"
+```
+
+### Download a prebuilt binary
 
 Grab the release for your platform from the [Releases page](../../releases),
-unpack, and put `wan` somewhere on your `PATH`.
+`chmod +x`, and put it somewhere on your `PATH`.
 
 ### Build from source
 
