@@ -60,8 +60,22 @@ GOOS=darwin GOARCH=arm64 go build -o wan-darwin-arm64 ./...
 
 ## Configure
 
-The router credentials are read from environment variables. The easiest
-way is a `.env` file next to the binary (or in the current directory):
+Each setting can be provided three ways. Resolution order:
+
+1. **CLI flag** — `-host`, `-user`, `-password`
+2. **Environment variable** — `TPLINK_HOST`, `TPLINK_USER`, `TPLINK_PASSWORD`
+3. **`.env` file** beside the binary (or in the current directory)
+
+| Setting   | Flag         | Env var           | Default              |
+| --------- | ------------ | ----------------- | -------------------- |
+| Host      | `-host`      | `TPLINK_HOST`     | `http://192.168.1.1` |
+| User      | `-user`      | `TPLINK_USER`     | `user`               |
+| Password  | `-password`  | `TPLINK_PASSWORD` | *(required)*         |
+
+The host accepts a bare IP (`192.168.1.1`) or a full URL
+(`http://192.168.1.1`). The XX230v firmware logs in as `user`, not `admin`.
+
+Example `.env`:
 
 ```ini
 TPLINK_PASSWORD=your-router-password
@@ -69,22 +83,19 @@ TPLINK_HOST=http://192.168.1.1
 TPLINK_USER=user
 ```
 
-| Variable          | Default                  | Notes                                                    |
-| ----------------- | ------------------------ | -------------------------------------------------------- |
-| `TPLINK_PASSWORD` | *(required)*             | The password you type in the router login page.          |
-| `TPLINK_HOST`     | `http://192.168.1.1`     | Bare `192.168.1.1` also works.                           |
-| `TPLINK_USER`     | `user`                   | XX230v firmware logs in with `user`, not `admin`.        |
-
-Set permissions on `.env` to keep the password off other accounts:
-
 ```sh
-chmod 600 .env
+chmod 600 .env   # keep the password readable only to your user
 ```
+
+> **Avoid `-password` on the command line in production**: it shows up in
+> `ps`, in shell history, and in any process-listing tool other users on
+> the box can run. Prefer the env var or `.env` file for routine use, and
+> reserve `-password` for quick one-off testing.
 
 ## Usage
 
 ```
-wan <command> [name]
+wan [flags] <command> [name]
 
   status                    summary + WAN list
   wan-list                  list every WAN (name, stack, type, enable, status, IP)
@@ -92,6 +103,11 @@ wan <command> [name]
   wan-enable  [name]        set enable=1
   wan-reconnect [name]      disable then enable back-to-back
   reboot                    reboot the whole router
+
+Flags:
+  -host string      router URL or IP (default: env or http://192.168.1.1)
+  -user string      login user       (default: env or user)
+  -password string  login password   (default: env, required)
 ```
 
 The `[name]` argument accepts either the WAN's display name (e.g.
@@ -111,6 +127,12 @@ ipoe_gpon_0_4_d        6,0,0,0,0,0    DHCP     1       Disconnected  0.0.0.0
 
 $ wan wan-reconnect
 WAN "pppoe_gpon_3_3" reconnect sent
+```
+
+### One-off against a different router
+
+```sh
+wan -host 10.0.0.1 -user admin -password "$ROUTER_PW" wan-list
 ```
 
 ### Scheduling with cron

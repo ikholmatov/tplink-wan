@@ -13,6 +13,7 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"io"
 	"math/big"
@@ -325,7 +326,7 @@ func loadEnv(path string) {
 	}
 }
 
-const usageTmpl = `Usage: %s <command> [arg]
+const usageTmpl = `Usage: %s [flags] <command> [name]
 
 Commands:
   status                    summary + WAN list
@@ -335,37 +336,57 @@ Commands:
   wan-reconnect [name]      disable then enable, back-to-back
   reboot                    reboot the router
 
-Env (or .env beside the binary):
-  TPLINK_HOST       default http://192.168.1.1
-  TPLINK_USER       default user
-  TPLINK_PASSWORD   required
+Flags (override env / .env):
+  -host string      router URL or IP   (env TPLINK_HOST, default http://192.168.1.1)
+  -user string      login user         (env TPLINK_USER, default user)
+  -password string  login password     (env TPLINK_PASSWORD, required)
+
+NOTE: passing -password on the command line exposes it to other processes
+(via ps) and shell history. Prefer TPLINK_PASSWORD in env or a chmod-600
+.env file beside the binary.
 `
 
 func usage() string {
 	return fmt.Sprintf(usageTmpl, filepath.Base(os.Args[0]))
 }
 
+// pick returns the first non-empty string.
+func pick(vals ...string) string {
+	for _, v := range vals {
+		if v != "" {
+			return v
+		}
+	}
+	return ""
+}
+
 func main() {
 	exe, _ := os.Executable()
 	loadEnv(filepath.Join(filepath.Dir(exe), ".env"))
-	// Also try cwd
 	loadEnv(".env")
 
-	if len(os.Args) < 2 {
-		fmt.Fprint(os.Stderr, usage())
+	flagHost := flag.String("host", "", "router URL or IP (env TPLINK_HOST, default http://192.168.1.1)")
+	flagUser := flag.String("user", "", "login user (env TPLINK_USER, default user)")
+	flagPass := flag.String("password", "", "login password (env TPLINK_PASSWORD, required)")
+	flag.Usage = func() { fmt.Fprint(os.Stderr, usage()) }
+	flag.Parse()
+
+	args := flag.Args()
+	if len(args) == 0 {
+		flag.Usage()
 		os.Exit(1)
 	}
-	cmd := os.Args[1]
+	cmd := args[0]
 	arg := "pppoe_gpon_3_3"
-	if len(os.Args) > 2 {
-		arg = os.Args[2]
+	if len(args) > 1 {
+		arg = args[1]
 	}
 
-	host := getenv("TPLINK_HOST", "http://192.168.1.1")
-	username := getenv("TPLINK_USER", "user")
-	password := os.Getenv("TPLINK_PASSWORD")
+	host := pick(*flagHost, os.Getenv("TPLINK_HOST"), "http://192.168.1.1")
+	username := pick(*flagUser, os.Getenv("TPLINK_USER"), "user")
+	password := pick(*flagPass, os.Getenv("TPLINK_PASSWORD"))
 	if password == "" {
-		die("TPLINK_PASSWORD is not set (env or .env)")
+		die("password required (use -password, TPLINK_PASSWORD env, or a .env file)")
 	}
 	// Accept bare hosts: "192.168.1.1" → "http://192.168.1.1"
 	if u, err := url.Parse(host); err != nil || u.Scheme == "" {
@@ -477,13 +498,6 @@ func str(v any) string {
 	}
 	b, _ := json.Marshal(v)
 	return string(b)
-}
-
-func getenv(k, fallback string) string {
-	if v := os.Getenv(k); v != "" {
-		return v
-	}
-	return fallback
 }
 
 func die(format string, a ...any) {
